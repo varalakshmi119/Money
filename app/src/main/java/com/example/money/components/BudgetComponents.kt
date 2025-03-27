@@ -24,17 +24,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DataUsage
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,7 +50,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -60,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -172,52 +175,208 @@ fun AddBudgetDialog(
 fun BudgetAlertBanner(
     overBudgetStatuses: List<BudgetStatus>
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(24.dp)
-            )
+            // Alert header with attention-grabbing design
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Alert icon in circle
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "Budget Alert",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    
+                    Text(
+                        text = "${overBudgetStatuses.size} ${if (overBudgetStatuses.size == 1) "category" else "categories"} over budget",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    )
+                }
+                
+                // Expand/collapse button
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Show less" else "Show more",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column {
-                Text(
-                    text = "Budget Alert",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-                
-                Text(
-                    text = "${overBudgetStatuses.size} ${if (overBudgetStatuses.size == 1) "category" else "categories"} over budget",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = overBudgetStatuses.joinToString(", ") { it.category },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
-                )
+            // Expanded content with details
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.1f),
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    
+                    // List of over-budget categories with details
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        overBudgetStatuses.forEach { status ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Category info
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Category first letter icon
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = status.category.take(1).uppercase(),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    
+                                    Column {
+                                        Text(
+                                            text = status.category,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Budget: ${BudgetUtils.formatCurrency(status.budgetAmount)}",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(4.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.3f))
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            Text(
+                                                text = "Spent: ${BudgetUtils.formatCurrency(status.spent)}",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                }
+                                
+                                // Overspent amount
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "+${BudgetUtils.formatCurrency(status.spent - status.budgetAmount)}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Action button
+                    Button(
+                        onClick = { /* TODO: Navigate to insights screen */ },
+                        modifier = Modifier.align(Alignment.End),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Get Insights")
+                    }
+                }
             }
         }
     }
@@ -239,18 +398,24 @@ fun BudgetSummaryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,14 +428,27 @@ fun BudgetSummaryCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 
-                Text(
-                    text = selectedTimeRange.displayName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                )
+                // Time period chip
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = when(selectedTimeRange) {
+                            BudgetTimeRange.CURRENT_MONTH -> "This Month"
+                            BudgetTimeRange.LAST_MONTH -> "Last Month"
+                            BudgetTimeRange.THREE_MONTHS -> "3 Months"
+                            BudgetTimeRange.CUSTOM -> "Custom"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             if (budgetStatuses.isEmpty()) {
                 // Empty state
@@ -279,16 +457,8 @@ fun BudgetSummaryCard(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "No budgets set",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = "Add a budget to start tracking your spending",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "No budgets set for this period",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
                     )
@@ -311,11 +481,20 @@ fun BudgetSummaryCard(
                         
                         Text(
                             text = BudgetUtils.formatCurrency(totalBudget),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
+                    
+                    // Divider
+                    Box(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f))
+                            .align(Alignment.CenterVertically)
+                    )
                     
                     // Total Spent
                     Column(
@@ -329,34 +508,66 @@ fun BudgetSummaryCard(
                         
                         Text(
                             text = BudgetUtils.formatCurrency(totalSpent),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (percentUsed > 90)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
-                // Progress bar
-                LinearProgressIndicator(
-                    progress = { (percentUsed / 100f).coerceIn(0.0, 1.0).toFloat() },
+                // Progress bar - Enhanced design
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(if (percentUsed >= 100) 1f else (percentUsed / 100).toFloat())
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                when {
+                                    percentUsed >= 100 -> MaterialTheme.colorScheme.error
+                                    percentUsed >= 90 -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                    percentUsed >= 75 -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
+                            )
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Percentage display
+                Text(
+                    text = String.format("%.1f%% used", percentUsed),
+                    style = MaterialTheme.typography.labelMedium,
                     color = when {
                         percentUsed >= 100 -> MaterialTheme.colorScheme.error
                         percentUsed >= 90 -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                        percentUsed >= 75 -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     },
-                    trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                    modifier = Modifier.align(Alignment.End)
                 )
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
-                // Remaining and percentage
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Remaining amount with improved visual
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -372,21 +583,40 @@ fun BudgetSummaryCard(
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
                         
-                        Text(
-                            text = BudgetUtils.formatCurrency(totalRemaining),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (totalRemaining < 0) 
-                                MaterialTheme.colorScheme.error 
-                            else 
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (totalRemaining < 0) 
+                                    Icons.Default.ArrowDownward 
+                                else 
+                                    Icons.Default.ArrowUpward,
+                                contentDescription = null,
+                                tint = if (totalRemaining < 0) 
+                                    MaterialTheme.colorScheme.error 
+                                else 
+                                    MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
+                            
+                            Text(
+                                text = BudgetUtils.formatCurrency(totalRemaining),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (totalRemaining < 0) 
+                                    MaterialTheme.colorScheme.error 
+                                else 
+                                    MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                     
-                    // Percentage used
+                    // Percentage circle
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(56.dp)
                             .clip(CircleShape)
                             .background(
                                 color = when {
@@ -399,7 +629,7 @@ fun BudgetSummaryCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "${percentUsed.toInt()}%",
+                            text = String.format("%.0f%%", percentUsed),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimary
@@ -606,8 +836,8 @@ fun BudgetAnalysisCard(
                     } else 0.0
                     
                     val trendIcon = when {
-                        avgDailySpending > avgDailyBudget * 1.1 -> Icons.AutoMirrored.Filled.TrendingUp
-                        avgDailySpending < avgDailyBudget * 0.9 -> Icons.AutoMirrored.Filled.TrendingDown
+                        avgDailySpending > avgDailyBudget * 1.1 -> Icons.Default.ExpandMore
+                        avgDailySpending < avgDailyBudget * 0.9 -> Icons.Default.ExpandLess
                         else -> Icons.Default.Bolt
                     }
                     
@@ -862,7 +1092,7 @@ fun BudgetOptimizationCard(
 }
 
 /**
- * Empty Budget Card - Shown when no budgets are set
+ * Empty state card for when no budgets are set
  */
 @Composable
 fun EmptyBudgetCard(
@@ -871,12 +1101,12 @@ fun EmptyBudgetCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
+            .animateContentSize(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -884,38 +1114,84 @@ fun EmptyBudgetCard(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.AccountBalance,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp)
-            )
+            // Animated icon
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             Text(
                 text = "No Budgets Set",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
                 text = "Start managing your finances by setting up budgets for your spending categories.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             
+            // Benefits list
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                BenefitItem(
+                    icon = Icons.Default.Visibility,
+                    title = "Track your spending",
+                    description = "Set limits for different categories to keep your finances in check"
+                )
+                
+                BenefitItem(
+                    icon = Icons.Default.ArrowUpward,
+                    title = "Meet your goals",
+                    description = "Stay on track with your financial goals by keeping within budget"
+                )
+                
+                BenefitItem(
+                    icon = Icons.Default.Insights,
+                    title = "Get insights",
+                    description = "Receive personalized budget recommendations based on your spending"
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(28.dp))
+            
+            // Prominent button
             Button(
                 onClick = onAddBudgetClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
                 )
             ) {
                 Icon(
@@ -924,10 +1200,60 @@ fun EmptyBudgetCard(
                     modifier = Modifier.size(20.dp)
                 )
                 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 
-                Text("Add Your First Budget")
+                Text(
+                    "Create Your First Budget",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
+        }
+    }
+}
+
+/**
+ * Individual benefit item for the empty state card
+ */
+@Composable
+private fun BenefitItem(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -935,6 +1261,7 @@ fun EmptyBudgetCard(
 /**
  * Enhanced individual budget item display with improved visual design
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetItem(
     budgetStatus: BudgetStatus,
@@ -942,36 +1269,34 @@ fun BudgetItem(
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val animatedHeight by animateDpAsState(
-        targetValue = if (expanded) 200.dp else 140.dp,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow)
+    val elevationAnim by animateDpAsState(
+        targetValue = if (expanded) 8.dp else 2.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "elevation"
     )
-    
-    val cardBackgroundColor = when {
-        budgetStatus.isOverBudget -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-        budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
-        budgetStatus.percentUsed > 80 -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
-        else -> MaterialTheme.colorScheme.surface
-    }
-    
-    val progressColor = when {
-        budgetStatus.isOverBudget -> MaterialTheme.colorScheme.error
-        budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiary
-        budgetStatus.percentUsed > 80 -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.primary
-    }
     
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
-        shape = RoundedCornerShape(24.dp),
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardBackgroundColor
+            containerColor = when {
+                budgetStatus.isOverBudget -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+                else -> MaterialTheme.colorScheme.surfaceContainerHigh
+            }
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (expanded) 6.dp else 2.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = elevationAnim),
+        onClick = { expanded = !expanded }
     ) {
         Column(
             modifier = Modifier
@@ -983,114 +1308,261 @@ fun BudgetItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = budgetStatus.category,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Text(
-                        text = BudgetUtils.formatCurrency(budgetStatus.budgetAmount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                
-                IconButton(
-                    onClick = onEdit
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Budget",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Progress bar
-            LinearProgressIndicator(
-                progress = { (budgetStatus.percentUsed / 100f).coerceIn(0.0, 1.0).toFloat() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = when (budgetStatus.status) {
-                    BudgetStatus.Status.EXCEEDED -> MaterialTheme.colorScheme.error
-                    BudgetStatus.Status.CRITICAL -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                    BudgetStatus.Status.WARNING -> MaterialTheme.colorScheme.tertiary
-                    BudgetStatus.Status.ATTENTION -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    BudgetStatus.Status.GOOD -> MaterialTheme.colorScheme.primary
-                },
-                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Stats
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Spent",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = BudgetUtils.formatCurrency(budgetStatus.spent),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Remaining",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = BudgetUtils.formatCurrency(budgetStatus.remaining),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = when (budgetStatus.status) {
-                            BudgetStatus.Status.EXCEEDED -> MaterialTheme.colorScheme.error
-                            BudgetStatus.Status.CRITICAL -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                            BudgetStatus.Status.WARNING -> MaterialTheme.colorScheme.tertiary
-                            BudgetStatus.Status.ATTENTION -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            BudgetStatus.Status.GOOD -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
-            }
-            
-            if (budgetStatus.willExceedBudget) {
-                Spacer(modifier = Modifier.height(8.dp))
-                
+                // Category with icon
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Category icon - stylized box with first letter
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                when {
+                                    budgetStatus.isOverBudget -> MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                                    budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                                    else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = budgetStatus.category.take(1).uppercase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                budgetStatus.isOverBudget -> MaterialTheme.colorScheme.error
+                                budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
+                            }
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Column {
+                        Text(
+                            text = budgetStatus.category,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = BudgetUtils.formatCurrency(budgetStatus.budgetAmount),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            if (budgetStatus.isOverBudget) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "Over budget",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            } else if (budgetStatus.willExceedBudget) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "At risk",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Expand/Collapse Button
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            // Progress indicator
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (budgetStatus.percentUsed >= 100) 1f else (budgetStatus.percentUsed / 100).toFloat())
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(
+                            when {
+                                budgetStatus.isOverBudget -> MaterialTheme.colorScheme.error
+                                budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
+                            }
+                        )
+                )
+            }
+            
+            // Percentage text
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = BudgetUtils.formatCurrency(budgetStatus.spent),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Text(
+                    text = String.format("%.1f%%", budgetStatus.percentUsed),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = when {
+                        budgetStatus.isOverBudget -> MaterialTheme.colorScheme.error
+                        budgetStatus.willExceedBudget -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+            
+            // Expanded content
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
                     
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
-                    Text(
-                        text = "On track to exceed budget by ${BudgetUtils.formatCurrency(budgetStatus.forecastedTotalSpending - budgetStatus.budgetAmount)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    // Detailed status
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Remaining",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Text(
+                                text = BudgetUtils.formatCurrency(budgetStatus.remaining),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    budgetStatus.remaining < 0 -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        }
+                        
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Daily Spending",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Text(
+                                text = BudgetUtils.formatCurrency(budgetStatus.dailySpendingRate),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Action buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = onEdit,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            Text("Edit")
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Button(
+                            onClick = onDelete,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            Text("Delete")
+                        }
+                    }
                 }
             }
         }

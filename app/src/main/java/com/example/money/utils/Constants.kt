@@ -24,4 +24,9 @@ object Constants {
         "Government/Regulatory Fee",
         "Other"
     )
+    
+    /**
+     * Predefined categories for budget creation
+     */
+    val PREDEFINED_CATEGORIES = TRANSACTION_CATEGORIES
 }

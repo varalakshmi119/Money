@@ -86,9 +86,6 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
         currency = Currency.getInstance("INR")
     }
 
-    // Top spending categories
-    val topCategories = categoryTotals.sortedByDescending { it.total }.take(4)
-
     // Calculate budget statuses
     val calendar = Calendar.getInstance()
     val startDate = calendar.apply {
@@ -98,7 +95,7 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
         set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
     }.time
 
-    val budgetStatuses = remember(transactions, budgets, startDate, endDate) {
+    val budgetStatuses = remember(budgets, transactions, startDate, endDate) {
         budgets.map { budget ->
             BudgetUtils.calculateCategoryBudgetStatus(
                 transactions = transactions.filter { it.category == budget.category },
@@ -110,19 +107,18 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
         }
     }
 
-    // Scroll state
-    val scrollState = rememberScrollState()
-
-    // Edit Savings Goal Dialog
-    EditSavingsGoalDialog(
-        visible = showEditSavingsGoalDialog,
-        currentGoal = savingsGoalProgress.savingsGoal,
-        onDismiss = { viewModel.hideEditSavingsGoalDialog() },
-        onSave = { amount ->
-            viewModel.updateSavingsGoal(amount)
-            viewModel.hideEditSavingsGoalDialog()
-        }
-    )
+    // Show EditSavingsGoalDialog if flag is set
+    if (showEditSavingsGoalDialog) {
+        EditSavingsGoalDialog(
+            visible = true,
+            currentGoal = savingsGoalProgress.savingsGoal,
+            onDismiss = { viewModel.hideEditSavingsGoalDialog() },
+            onSave = { newGoal ->
+                viewModel.updateSavingsGoal(newGoal)
+                viewModel.hideEditSavingsGoalDialog()
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -131,17 +127,15 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Welcome header
+            // Dashboard Header
             DashboardHeader()
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Enhanced Balance Card with improved visual design
+            // Account Balance Card with animation
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -150,7 +144,7 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -161,58 +155,54 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
                     Text(
                         text = "Current Balance",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = currencyFormatter.format(balance),
+
+                    // Animated counter for balance
+                    AnimatedCounter(
+                        targetValue = balance,
+                        formatValue = { currencyFormatter.format(it) },
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        // Income summary
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "Income",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
-                            Text(
-                                text = currencyFormatter.format(totalCredits ?: 0.0),
+                            
+                            AnimatedCounter(
+                                targetValue = totalCredits ?: 0.0,
+                                formatValue = { currencyFormatter.format(it) },
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
-                        
-                        // Vertical divider
-                        Box(
-                            modifier = Modifier
-                                .height(40.dp)
-                                .width(1.dp)
-                                .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
-                        )
-                        
-                        // Expenses summary
+
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "Expenses",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
-                            Text(
-                                text = currencyFormatter.format(totalDebits ?: 0.0),
+                            
+                            AnimatedCounter(
+                                targetValue = totalDebits ?: 0.0,
+                                formatValue = { currencyFormatter.format(it) },
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
@@ -222,29 +212,7 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Enhanced Spending Summary Section with better visual hierarchy
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = "Spending Summary",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            
+            // Spending Trends Section (Increased Size)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -255,20 +223,18 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    // Spending Trend Chart with improved height and padding
-                    SpendingTrendChart(
-                        transactions = transactions,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                    )
-                }
+                // Spending Trend Chart with increased height
+                SpendingTrendChart(
+                    transactions = transactions,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Enhanced Categories and Budget Section with improved layout
+            // Spending Categories Section
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -285,7 +251,7 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
                 Spacer(modifier = Modifier.width(8.dp))
                 
                 Text(
-                    text = "Spending Categories & Budget",
+                    text = "Spending Categories",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -293,147 +259,155 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // Left column: Categorized spending breakdown with enhanced design
-                Card(
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(260.dp)
-                        .padding(end = 8.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        .padding(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(20.dp)
-                            .fillMaxSize()
-                    ) {
-                        Text(
-                            text = "Top Categories",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    if (categoryTotals.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No spending data available",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        // Show all categories instead of just top ones
+                        val allCategories = categoryTotals.sortedByDescending { it.total }
+                        
+                        allCategories.forEach { category ->
+                            val percentage = if (totalDebits!! > 0) {
+                                (category.total / totalDebits!!) * 100
+                            } else 0.0
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                            CategoryProgressItem(
+                                category = category.category,
+                                amount = category.total,
+                                percentage = percentage,
+                                currencyFormatter = currencyFormatter
+                            )
 
-                        if (topCategories.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No spending data available",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        } else {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                topCategories.forEach { category ->
-                                    val percentage = if (totalDebits!! > 0) {
-                                        (category.total / totalDebits!!) * 100
-                                    } else 0.0
-
-                                    CategoryProgressItem(
-                                        category = category.category,
-                                        amount = category.total,
-                                        percentage = percentage,
-                                        currencyFormatter = currencyFormatter
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Right column: Budget status with enhanced design
-                Card(
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Budget Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountBalance,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = "Budget Overview",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(260.dp)
-                        .padding(start = 8.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        .padding(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(20.dp)
-                            .fillMaxSize()
-                    ) {
+                    if (budgetStatuses.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No budgets set",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        // Calculate overall budget metrics
+                        val totalBudget = budgetStatuses.sumOf { it.budgetAmount }
+                        val totalSpent = budgetStatuses.sumOf { it.spent }
+                        val overallPercentUsed = if (totalBudget > 0) (totalSpent / totalBudget) * 100 else 0.0
+
+                        // Overall progress
                         Text(
-                            text = "Budget Status",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "Overall: ${currencyFormatter.format(totalSpent)} of ${currencyFormatter.format(totalBudget)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LinearProgressIndicator(
+                            progress = { (overallPercentUsed / 100).coerceIn(0.0, 1.0).toFloat() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = when {
+                                overallPercentUsed >= 100 -> MaterialTheme.colorScheme.error
+                                overallPercentUsed >= 80 -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
+                            },
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        if (budgetStatuses.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No budgets set",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        } else {
-                            // Calculate overall budget metrics
-                            val totalBudget = budgetStatuses.sumOf { it.budgetAmount }
-                            val totalSpent = budgetStatuses.sumOf { it.spent }
-                            val overallPercentUsed = if (totalBudget > 0) (totalSpent / totalBudget) * 100 else 0.0
-
-                            // Overall progress
-                            Text(
-                                text = "Overall: ${currencyFormatter.format(totalSpent)} of ${currencyFormatter.format(totalBudget)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
+                        // Show all category budgets instead of just top ones
+                        budgetStatuses.sortedBy { it.category }.forEach { status ->
+                            // Find if there's a matching category in spending
+                            val categorySpending = categoryTotals.find { it.category == status.category }
+                            
+                            // Create a combined view of budget and actual spending
+                            BudgetWithSpendingItem(
+                                status = status,
+                                actualSpending = categorySpending?.total ?: 0.0,
+                                currencyFormatter = currencyFormatter
                             )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            LinearProgressIndicator(
-                                progress = { (overallPercentUsed / 100).coerceIn(0.0, 1.0).toFloat() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = when {
-                                    overallPercentUsed >= 100 -> MaterialTheme.colorScheme.error
-                                    overallPercentUsed >= 80 -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.primary
-                                },
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-
+                            
                             Spacer(modifier = Modifier.height(16.dp))
-
-                            // Show top 2-3 budget categories
-                            val topBudgets = budgetStatuses.sortedByDescending { it.percentUsed }.take(3)
-                            topBudgets.forEach { status ->
-                                MiniCategoryBudgetItem(
-                                    status = status,
-                                    currencyFormatter = currencyFormatter
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
                         }
                     }
                 }
@@ -559,7 +533,6 @@ fun DashboardHeader() {
     }
 }
 
-
 /**
  * Category Progress Item for displaying spending by category 
  */
@@ -619,11 +592,12 @@ fun CategoryProgressItem(
 }
 
 /**
- * Mini Category Budget Item for displaying budget status in a compact format
+ * New component that combines budget status with actual spending
  */
 @Composable
-fun MiniCategoryBudgetItem(
+fun BudgetWithSpendingItem(
     status: BudgetStatus,
+    actualSpending: Double,
     currencyFormatter: NumberFormat
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -632,11 +606,23 @@ fun MiniCategoryBudgetItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = status.category,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Category color indicator
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(CategoryColors.getColorForCategory(status.category))
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = status.category,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             Text(
                 text = "${currencyFormatter.format(status.spent)} / ${currencyFormatter.format(status.budgetAmount)}",
@@ -647,6 +633,7 @@ fun MiniCategoryBudgetItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
+        // Progress bar with budget
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -656,8 +643,8 @@ fun MiniCategoryBudgetItem(
                 progress = { (status.percentUsed / 100).coerceIn(0.0, 1.0).toFloat() },
                 modifier = Modifier
                     .weight(1f)
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 color = when {
                     status.percentUsed >= 100 -> MaterialTheme.colorScheme.error
                     status.percentUsed >= 80 -> MaterialTheme.colorScheme.tertiary
@@ -677,6 +664,23 @@ fun MiniCategoryBudgetItem(
                     status.percentUsed >= 80 -> MaterialTheme.colorScheme.tertiary
                     else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 }
+            )
+        }
+        
+        // Additional status info
+        if (status.daysUntilDepleted < 30 && status.daysUntilDepleted != Int.MAX_VALUE) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "At current rate, depleted in ${status.daysUntilDepleted} days",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        } else if (status.willExceedBudget && !status.isOverBudget) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Forecasted to exceed budget this month",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary
             )
         }
     }

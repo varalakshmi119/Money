@@ -3,6 +3,8 @@ package com.example.money.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -68,7 +71,6 @@ fun SpendingTrendChart(
     modifier: Modifier = Modifier
 ) {
     var selectedPeriod by remember { mutableStateOf(TrendPeriod.MONTHLY) }
-    var periodDropdownExpanded by remember { mutableStateOf(false) }
     val animatedProgress = remember { Animatable(initialValue = 0f) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -93,132 +95,132 @@ fun SpendingTrendChart(
         )
     }
 
-    Card(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = "Spending Trends",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Improved time period selector with better styling - more compact
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Text(
-                    text = "Spending Trends",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Box {
-                    ExposedDropdownMenuBox(
-                        expanded = periodDropdownExpanded,
-                        onExpandedChange = { periodDropdownExpanded = it }
-                    ) {
-                        OutlinedTextField(
-                            value = selectedPeriod.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() },
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Default.ArrowDropDown,
-                                    contentDescription = "Select Period"
-                                )
-                            },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(2.dp)
+                ) {
+                    TrendPeriod.entries.forEach { period ->
+                        val isSelected = selectedPeriod == period
+                        Box(
                             modifier = Modifier
-                                .menuAnchor()
-                                .width(120.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            ),
-                            singleLine = true
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = periodDropdownExpanded,
-                            onDismissRequest = { periodDropdownExpanded = false }
-                        ) {
-                            TrendPeriod.entries.forEach { period ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            period.name.replaceFirstChar {
-                                                if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-                                            }
-                                        )
-                                    },
-                                    onClick = {
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (isSelected) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.01f)
+                                )
+                                .clickable {
+                                    if (!isSelected) {
                                         selectedPeriod = period
-                                        periodDropdownExpanded = false
                                         coroutineScope.launch {
                                             animatedProgress.snapTo(0f)
                                         }
                                     }
-                                )
-                            }
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = when(period) {
+                                    TrendPeriod.WEEKLY -> "W"
+                                    TrendPeriod.MONTHLY -> "M"
+                                    TrendPeriod.YEARLY -> "Y"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) 
+                                    MaterialTheme.colorScheme.onPrimary 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            if (trendData.isEmpty()) {
-                Box(
+        if (trendData.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Not enough data to display trends",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        } else {
+            val axisColor = MaterialTheme.colorScheme.outline
+            val onSurfaceColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f).toArgb()
+            val primaryColor = MaterialTheme.colorScheme.primary
+            val primaryTransparentColor = primaryColor.copy(alpha = 0.7f)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+            ) {
+                Canvas(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text(
-                        text = "Not enough data to display trends",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    val canvasWidth = size.width
+                    val canvasHeight = size.height
+                    
+                    // Ensure we don't divide by zero
+                    val dataSize = maxOf(trendData.size, 1)
+                    val barWidth = canvasWidth / (dataSize + 1)
+                    val padding = barWidth * 0.2f
+
+                    // Draw axes
+                    drawLine(
+                        start = Offset(40f, 0f),
+                        end = Offset(40f, canvasHeight - 30f),
+                        color = axisColor.copy(alpha = 0.2f),
+                        strokeWidth = 2f
                     )
-                }
-            } else {
-                val axisColor = MaterialTheme.colorScheme.outline
-                val onSurfaceColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f).toArgb()
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val primaryTransparentColor = primaryColor.copy(alpha = 0.7f)
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                ) {
-                    Canvas(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        val canvasWidth = size.width
-                        val canvasHeight = size.height
-                        val barWidth = canvasWidth / (trendData.size + 1)
-                        val padding = barWidth * 0.2f
+                    drawLine(
+                        start = Offset(40f, canvasHeight - 30f),
+                        end = Offset(canvasWidth, canvasHeight - 30f),
+                        color = axisColor.copy(alpha = 0.2f),
+                        strokeWidth = 2f
+                    )
 
-                        drawLine(
-                            start = Offset(40f, 0f),
-                            end = Offset(40f, canvasHeight - 30f),
-                            color = axisColor.copy(alpha = 0.2f),
-                            strokeWidth = 2f
-                        )
-
-                        drawLine(
-                            start = Offset(40f, canvasHeight - 30f),
-                            end = Offset(canvasWidth, canvasHeight - 30f),
-                            color = axisColor.copy(alpha = 0.2f),
-                            strokeWidth = 2f
-                        )
-
+                    // Only draw labels and bars if we have data
+                    if (maxValue > 0) {
                         val yLabelValues = listOf(0.25f, 0.5f, 0.75f, 1f)
                         yLabelValues.forEach { fraction ->
                             val yPos = (canvasHeight - 30f) * (1 - fraction)
@@ -241,8 +243,9 @@ fun SpendingTrendChart(
                             )
                         }
 
+                        // Draw bars
                         trendData.entries.forEachIndexed { index, (period, value) ->
-                            val barHeight = if (maxValue > 0) ((value / maxValue) * (canvasHeight - 30f) * animatedProgress.value).toFloat() else 0f
+                            val barHeight = ((value / maxValue) * (canvasHeight - 30f) * animatedProgress.value).toFloat()
                             val barX = (index + 1) * barWidth - barWidth + padding + 40f
                             val barY = canvasHeight - 30f - barHeight
                             val barWidthFinal = barWidth - (padding * 2)
@@ -269,7 +272,7 @@ fun SpendingTrendChart(
                                 drawContext.canvas.nativeCanvas.apply {
                                     drawText(
                                         currencyFormatter.format(value),
-                                        barX + (barWidthFinal / 2) - 20f,
+                                        barX + (barWidthFinal / 2),
                                         barY - 8f,
                                         android.graphics.Paint().apply {
                                             color = primaryColor.copy(alpha = 0.9f).toArgb()
@@ -281,7 +284,9 @@ fun SpendingTrendChart(
                             }
                         }
                     }
+                }
 
+                if (trendData.isNotEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -301,28 +306,28 @@ fun SpendingTrendChart(
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                val totalSpending = trendData.values.sum()
-                val averageSpending = if (trendData.isNotEmpty()) totalSpending / trendData.size else 0.0
+            val totalSpending = trendData.values.sum()
+            val averageSpending = if (trendData.isNotEmpty()) totalSpending / trendData.size else 0.0
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    SummaryItem(
-                        title = "Total",
-                        value = currencyFormatter.format(totalSpending),
-                        modifier = Modifier.weight(1f)
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SummaryItem(
+                    title = "Total",
+                    value = currencyFormatter.format(totalSpending),
+                    modifier = Modifier.weight(1f)
+                )
 
-                    SummaryItem(
-                        title = "Average",
-                        value = currencyFormatter.format(averageSpending),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                SummaryItem(
+                    title = "Average",
+                    value = currencyFormatter.format(averageSpending),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

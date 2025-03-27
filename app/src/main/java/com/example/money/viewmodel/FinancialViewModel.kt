@@ -118,6 +118,12 @@ class FinancialViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     
+    fun addBudget(budget: BudgetEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            budgetRepository.insertBudget(budget)
+        }
+    }
+    
     fun updateBudget(budget: BudgetEntity) {
         viewModelScope.launch(Dispatchers.IO) {
             val updatedBudget = budget.copy(lastUpdated = Date())
@@ -128,6 +134,12 @@ class FinancialViewModel(application: Application) : AndroidViewModel(applicatio
     fun deleteBudgetByCategory(category: String) {
         viewModelScope.launch(Dispatchers.IO) {
             budgetRepository.deleteBudget(category)
+        }
+    }
+    
+    fun deleteBudget(budget: BudgetEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            budgetRepository.deleteBudget(budget.category)
         }
     }
     

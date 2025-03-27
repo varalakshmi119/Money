@@ -1,5 +1,7 @@
 package com.example.money.screens
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,20 +13,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +55,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,10 +69,10 @@ import com.example.money.components.EmptyBudgetCard
 import com.example.money.database.BudgetEntity
 import com.example.money.utils.BudgetUtils
 import com.example.money.utils.Constants
+import com.example.money.utils.SavingsGoalStatus
 import com.example.money.viewmodel.BudgetSortOrder
 import com.example.money.viewmodel.FinancialViewModel
 import java.util.Calendar
-import java.util.Date
 import java.util.TimeZone
 
 /**
@@ -250,7 +260,7 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                             }
                         ) {
                             IconButton(
-                                onClick = { showFilterMenu = true }
+                                onClick = { viewModel.toggleFilterOverBudget() }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FilterList,
@@ -262,33 +272,28 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                                 )
                             }
                         }
-                        
-                        DropdownMenu(
-                            expanded = showFilterMenu,
-                            onDismissRequest = { showFilterMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (filterOverBudget) "Show All" else "Show Over Budget") },
-                                onClick = {
-                                    viewModel.toggleFilterOverBudget()
-                                    showFilterMenu = false
-                                }
-                            )
-                        }
                     }
                 }
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddBudgetDialog = true },
+                onClick = { 
+                    selectedCategory = null
+                    showAddBudgetDialog = true 
+                },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Budget"
+                    contentDescription = "Add Budget",
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -298,35 +303,58 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Time range selector
+            // Time range selector with enhanced design
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(16.dp)
             ) {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.fillMaxWidth()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    SegmentedButton(
-                        selected = selectedTimeRange == BudgetTimeRange.CURRENT_MONTH,
-                        onClick = { selectedTimeRange = BudgetTimeRange.CURRENT_MONTH },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
-                        Text("This Month")
-                    }
-                    SegmentedButton(
-                        selected = selectedTimeRange == BudgetTimeRange.LAST_MONTH,
-                        onClick = { selectedTimeRange = BudgetTimeRange.LAST_MONTH },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                    ) {
-                        Text("Last Month")
-                    }
-                    SegmentedButton(
-                        selected = selectedTimeRange == BudgetTimeRange.THREE_MONTHS,
-                        onClick = { selectedTimeRange = BudgetTimeRange.THREE_MONTHS },
-                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                    ) {
-                        Text("3 Months")
+                        Text(
+                            text = "Budget Period",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SegmentedButton(
+                                selected = selectedTimeRange == BudgetTimeRange.CURRENT_MONTH,
+                                onClick = { selectedTimeRange = BudgetTimeRange.CURRENT_MONTH },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                            ) {
+                                Text("This Month")
+                            }
+                            SegmentedButton(
+                                selected = selectedTimeRange == BudgetTimeRange.LAST_MONTH,
+                                onClick = { selectedTimeRange = BudgetTimeRange.LAST_MONTH },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                            ) {
+                                Text("Last Month")
+                            }
+                            SegmentedButton(
+                                selected = selectedTimeRange == BudgetTimeRange.THREE_MONTHS,
+                                onClick = { selectedTimeRange = BudgetTimeRange.THREE_MONTHS },
+                                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                            ) {
+                                Text("3 Months")
+                            }
+                        }
                     }
                 }
             }
@@ -337,7 +365,7 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(bottom = 88.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Show alert banner for over-budget categories
                 if (budgetStatuses.any { it.isOverBudget }) {
@@ -399,20 +427,41 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
+                                .animateContentSize()
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Your Budgets",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Your Budgets",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    
+                                    if (filterOverBudget) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Filtered",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                }
                                 
                                 Text(
-                                    text = "${sortedAndFilteredBudgetStatuses.size} budgets",
+                                    text = "${sortedAndFilteredBudgetStatuses.size} ${if (sortedAndFilteredBudgetStatuses.size == 1) "budget" else "budgets"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -437,48 +486,54 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                                 showAddBudgetDialog = true
                             },
                             onDelete = {
-                                viewModel.deleteBudgetByCategory(status.category)
+                                val budget = budgets.find { it.category == status.category }
+                                budget?.let { viewModel.deleteBudget(it) }
                             }
                         )
                     }
                 } else if (budgets.isEmpty()) {
-                    // Empty state when no budgets are set
+                    // Empty state
                     item {
                         EmptyBudgetCard(
                             onAddBudgetClick = { showAddBudgetDialog = true }
                         )
                     }
                 } else {
-                    // Empty state when filter returned no results
+                    // No budgets match filter criteria
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
                         ) {
                             Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FilterList,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(48.dp)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(40.dp)
                                 )
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
                                 
                                 Text(
-                                    text = "No matching budgets",
+                                    text = "No budgets match filter",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
                                 Text(
-                                    text = "Try changing your filters to see more budgets.",
+                                    text = "Try adjusting your filters to see more budgets",
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -489,11 +544,12 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                                 Button(
                                     onClick = { viewModel.toggleFilterOverBudget() },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text("Show All Budgets")
+                                    Text("Clear Filters")
                                 }
                             }
                         }
@@ -501,30 +557,36 @@ fun BudgetScreen(viewModel: FinancialViewModel) {
                 }
             }
         }
-
+        
         // Add/Edit Budget Dialog
         if (showAddBudgetDialog) {
-            val initialCategory = selectedCategory
-            val initialBudget = budgets.find { it.category == initialCategory }
-
+            val initialBudget = selectedCategory?.let { category ->
+                budgets.find { it.category == category }
+            }
+            
             AddBudgetDialog(
-                initialCategory = initialCategory,
+                initialCategory = selectedCategory,
                 initialAmount = initialBudget?.budgetAmount ?: 0.0,
-                onDismiss = {
-                    showAddBudgetDialog = false
-                    selectedCategory = null
-                },
+                onDismiss = { showAddBudgetDialog = false },
                 onConfirm = { category, amount ->
-                    val budget = BudgetEntity(
-                        category = category,
-                        budgetAmount = amount,
-                        lastUpdated = Date()
-                    )
-                    viewModel.insertBudget(budget)
+                    if (initialBudget != null) {
+                        viewModel.updateBudget(initialBudget.copy(
+                            category = category,
+                            budgetAmount = amount
+                        ))
+                    } else {
+                        viewModel.addBudget(
+                            BudgetEntity(
+                                category = category,
+                                budgetAmount = amount,
+                                rolloverUnused = false,
+                                alertThreshold = 0.9
+                            )
+                        )
+                    }
                     showAddBudgetDialog = false
-                    selectedCategory = null
                 },
-                categories = Constants.TRANSACTION_CATEGORIES
+                categories = Constants.PREDEFINED_CATEGORIES
             )
         }
     }
@@ -539,4 +601,6 @@ enum class BudgetTimeRange(val displayName: String) {
     THREE_MONTHS("Last 3 Months"),
     CUSTOM("Custom Range")
 }
+
+
 
