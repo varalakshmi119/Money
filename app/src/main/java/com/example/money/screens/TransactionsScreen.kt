@@ -181,6 +181,12 @@ fun TransactionsScreen(viewModel: FinancialViewModel) {
     Scaffold(
         topBar = {
             if (isSearchActive) {
+                TextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
@@ -221,12 +227,6 @@ fun TransactionsScreen(viewModel: FinancialViewModel) {
                     },
                     colors = SearchBarDefaults.colors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                        inputFieldColors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent
-                        )
                     )
                 ) {
                     LazyColumn {

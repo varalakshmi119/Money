@@ -69,8 +69,6 @@ import com.example.money.utils.BudgetOptimizationSuggestion
 import com.example.money.utils.BudgetOptimizationType
 import com.example.money.utils.BudgetStatus
 import com.example.money.utils.BudgetUtils
-import java.text.NumberFormat
-import java.util.Currency
 
 /**
  * Dialog for adding or editing a budget
@@ -166,16 +164,6 @@ fun AddBudgetDialog(
     )
 }
 
-
-/**
- * Helper function to format currency values - remains same
- */
-private fun formatCurrency(amount: Double): String {
-    val currencyFormatter = NumberFormat.getCurrencyInstance().apply {
-        currency = Currency.getInstance("INR")
-    }
-    return currencyFormatter.format(amount)
-}
 
 /**
  * Budget Alert Banner - Shows a warning for over-budget categories

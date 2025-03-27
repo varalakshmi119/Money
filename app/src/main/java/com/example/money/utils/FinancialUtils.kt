@@ -3,7 +3,6 @@ package com.example.money.utils
 import com.example.money.models.Transaction
 import com.example.money.models.MonthlyAnalysis
 import com.example.money.models.TransactionDTO
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -63,11 +62,6 @@ object FinancialUtils {
             "gpay", "phonepe", "paytm"
         )
     )
-    // Format currency
-    fun formatCurrency(amount: Double): String {
-        val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
-        return currencyFormat.format(amount)
-    }
 
     /**
      * Suggest a category based on transaction description

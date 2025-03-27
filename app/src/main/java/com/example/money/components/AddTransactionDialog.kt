@@ -437,7 +437,7 @@ private fun createTransaction(
     val timestamp = try {
         val dateFormat = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.US)
         dateFormat.parse("$dateString $timeString") ?: Date()
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         Date()
     }
     

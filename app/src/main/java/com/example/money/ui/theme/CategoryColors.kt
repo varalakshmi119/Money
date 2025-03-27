@@ -1,6 +1,7 @@
 package com.example.money.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import kotlin.math.abs
 
 /**
  * Utility class to manage category colors
@@ -34,31 +35,11 @@ object CategoryColors {
     fun getColorForCategory(category: String): Color {
         if (!colorMap.containsKey(category)) {
             // Assign a color based on the hash of the category name
-            val index = Math.abs(category.hashCode()) % predefinedColors.size
+            val index = abs(category.hashCode()) % predefinedColors.size
             colorMap[category] = predefinedColors[index]
         }
         
         return colorMap[category]!!
     }
-    
-    /**
-     * Set a specific color for a category
-     */
-    fun setColorForCategory(category: String, color: Color) {
-        colorMap[category] = color
-    }
-    
-    /**
-     * Get all category colors
-     */
-    fun getAllCategoryColors(): Map<String, Color> {
-        return colorMap.toMap()
-    }
-    
-    /**
-     * Clear all category color assignments
-     */
-    fun clearAllColors() {
-        colorMap.clear()
-    }
+
 }

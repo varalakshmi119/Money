@@ -6,9 +6,6 @@ import com.example.money.models.TransactionDTO
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
-import com.tom_roush.pdfbox.cos.COSName
-import com.tom_roush.pdfbox.pdmodel.graphics.PDXObject
-import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.regex.Pattern
@@ -143,7 +140,7 @@ object PDFUtils {
      * Process transaction details from the lines
      */
     private fun processTransactionDetails(lines: List<String>, startIndex: Int, transaction: MutableMap<String, String>) {
-        for (j in startIndex + 1 until Math.min(startIndex + LOOK_AHEAD_LINES, lines.size)) {
+        for (j in startIndex + 1 until (startIndex + LOOK_AHEAD_LINES).coerceAtMost(lines.size)) {
             val line = lines[j]
             
             when {

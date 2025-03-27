@@ -117,7 +117,6 @@ fun DashboardScreen(viewModel: FinancialViewModel) {
     EditSavingsGoalDialog(
         visible = showEditSavingsGoalDialog,
         currentGoal = savingsGoalProgress.savingsGoal,
-        currencyFormatter = currencyFormatter,
         onDismiss = { viewModel.hideEditSavingsGoalDialog() },
         onSave = { amount ->
             viewModel.updateSavingsGoal(amount)

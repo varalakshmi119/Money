@@ -12,24 +12,6 @@ import java.util.*
  * and generating budget-related insights.
  */
 object BudgetUtils {
-    // Budget categories that match transaction categories
-    private val budgetCategories = listOf(
-        "Food and Dining",
-        "Travel",
-        "Online Purchase/Service",
-        "Entertainment",
-        "Mobile Recharge",
-        "Utilities",
-        "Healthcare",
-        "Education",
-        "Personal Payment",
-        "Building Materials",
-        "Groceries/Daily Needs",
-        "Laundry",
-        "Financial Service/Payment Platform",
-        "Government/Regulatory Fee",
-        "Other"
-    )
 
     /**
      * Calculate spending against budget for a specific category
@@ -204,87 +186,6 @@ object BudgetUtils {
     }
 
     /**
-     * Generate budget recommendations based on past spending patterns
-     * @param transactions List of all transactions to analyze
-     * @return Map of category to recommended budget amount
-     */
-    fun generateBudgetRecommendations(transactions: List<Transaction>): Map<String, Double> {
-        val recommendations = mutableMapOf<String, Double>()
-        
-        // Filter to only include debits and sort by date
-        val sortedDebitTransactions = transactions
-            .filter { it.type == "Debit" }
-            .sortedByDescending { it.timestamp }
-            
-        // If no transaction history, return default recommendations
-        if (sortedDebitTransactions.isEmpty()) {
-            budgetCategories.forEach { category ->
-                recommendations[category] = 1000.0
-            }
-            return recommendations
-        }
-        
-        // Calculate the date 3 months ago
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.MONTH, -3)
-        val threeMonthsAgo = calendar.time.time
-        
-        // Get transactions from last 3 months for analysis
-        val recentTransactions = sortedDebitTransactions
-            .filter { it.timestamp.time >= threeMonthsAgo }
-            
-        // If no recent transactions, use all transactions
-        val transactionsToAnalyze = recentTransactions.ifEmpty {
-            sortedDebitTransactions
-        }
-        
-        // Calculate start timestamp and number of months to analyze
-        val startTimestamp = transactionsToAnalyze.minByOrNull { it.timestamp.time }?.timestamp?.time ?: System.currentTimeMillis()
-        val endTimestamp = System.currentTimeMillis()
-        val months = ((endTimestamp - startTimestamp) / (30.44 * 24 * 60 * 60 * 1000)).coerceAtLeast(1.0)
-        
-        // Calculate category-wise spending averages with trend analysis
-        val categorySpending = transactionsToAnalyze
-            .groupBy { it.category }
-            .mapValues { (_, txns) ->
-                val totalSpent = txns.sumOf { it.amount.toDouble() }
-                val avgMonthly = totalSpent / months
-                
-                // Analyze spending trend (increasing or decreasing)
-                val monthlySpending = (0 until months.toInt()).map { monthOffset ->
-                    val monthStart = Calendar.getInstance().apply {
-                        time = Date(startTimestamp)
-                        add(Calendar.MONTH, monthOffset)
-                    }
-                    val monthEnd = Calendar.getInstance().apply {
-                        time = monthStart.time
-                        set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
-                    }
-                    
-                    txns.filter { 
-                        it.timestamp >= monthStart.time && 
-                        it.timestamp <= monthEnd.time 
-                    }.sumOf { it.amount.toDouble() }
-                }
-                
-                // If spending is increasing, add more buffer
-                val isIncreasing = monthlySpending.size >= 2 &&
-                        (monthlySpending.lastOrNull() ?: 0.0) > (monthlySpending.firstOrNull() ?: 0.0)
-                
-                val buffer = if (isIncreasing) 1.15 else 1.1
-                avgMonthly * buffer
-            }
-
-        // Ensure all budget categories have a recommendation
-        budgetCategories.forEach { category ->
-            // If no spending history, suggest a small default budget
-            recommendations[category] = categorySpending[category] ?: 1000.0
-        }
-
-        return recommendations
-    }
-    
-    /**
      * Analyze budget efficiency and provide improvement suggestions
      * @param budgets List of current budgets
      * @param transactions List of transactions to analyze
@@ -451,118 +352,6 @@ object BudgetUtils {
     }
 
     /**
-     * Calculate budget allocation recommendations based on the 50/30/20 rule
-     * 50% for needs, 30% for wants, 20% for savings/debt
-     * @param monthlyIncome Total monthly income
-     * @return Map of budget category to recommended amount
-     */
-    fun calculateBudgetAllocation(monthlyIncome: Double): Map<String, Double> {
-        val needs = monthlyIncome * 0.5
-        val wants = monthlyIncome * 0.3
-        val savings = monthlyIncome * 0.2
-        
-        return mapOf(
-            "Needs" to needs,
-            "Wants" to wants,
-            "Savings" to savings,
-            // Detailed breakdown of needs (50%)
-            "Housing" to (needs * 0.5), // 25% of total income
-            "Groceries/Daily Needs" to (needs * 0.2), // 10% of total income
-            "Utilities" to (needs * 0.1), // 5% of total income
-            "Healthcare" to (needs * 0.1), // 5% of total income
-            "Transportation" to (needs * 0.1), // 5% of total income
-            // Detailed breakdown of wants (30%)
-            "Food and Dining" to (wants * 0.4), // 12% of total income
-            "Entertainment" to (wants * 0.2), // 6% of total income
-            "Travel" to (wants * 0.2), // 6% of total income
-            "Online Purchase/Service" to (wants * 0.2) // 6% of total income
-        )
-    }
-    
-    /**
-     * Calculate a zero-sum budget based on income
-     * Allocates all income to specific categories with no money left unallocated
-     * @param monthlyIncome Total monthly income
-     * @param existingBudgets Current budget allocations to consider
-     * @return Optimized zero-sum budget allocation
-     */
-    fun calculateZeroSumBudget(
-        monthlyIncome: Double,
-        existingBudgets: Map<String, Double> = emptyMap()
-    ): Map<String, Double> {
-        // Base allocation percentages
-        val baseAllocation = mapOf(
-            "Housing" to 0.25,
-            "Groceries/Daily Needs" to 0.15,
-            "Utilities" to 0.10,
-            "Transportation" to 0.10,
-            "Food and Dining" to 0.10,
-            "Entertainment" to 0.05,
-            "Healthcare" to 0.05,
-            "Education" to 0.05,
-            "Savings" to 0.10,
-            "Other" to 0.05
-        )
-        
-        // Start with existing budgets
-        val result = existingBudgets.toMutableMap()
-        
-        // Calculate sum of existing allocations
-        val existingSum = existingBudgets.values.sum()
-        
-        // Calculate remaining amount to allocate
-        val remainingToAllocate = monthlyIncome - existingSum
-        
-        // If remaining amount is negative or zero, return existing budgets
-        if (remainingToAllocate <= 0) {
-            return existingBudgets
-        }
-        
-        // Get categories that don't have an allocation yet
-        val unallocatedCategories = baseAllocation.keys.filter { it !in existingBudgets }
-        
-        // If all categories are allocated, we're done
-        if (unallocatedCategories.isEmpty()) {
-            return existingBudgets
-        }
-        
-        // Calculate sum of base allocation percentages for unallocated categories
-        val unallocatedPercentageSum = unallocatedCategories.sumOf { baseAllocation[it] ?: 0.0 }
-        
-        // Allocate remaining amount proportionally to unallocated categories
-        unallocatedCategories.forEach { category ->
-            val percentage = baseAllocation[category] ?: 0.0
-            val normalizedPercentage = if (unallocatedPercentageSum > 0) 
-                percentage / unallocatedPercentageSum else 0.0
-            
-            result[category] = normalizedPercentage * remainingToAllocate
-        }
-        
-        return result
-    }
-
-    /**
-     * Get start and end dates for a month
-     */
-    fun getMonthStartEndDates(date: Date): Pair<Date, Date> {
-        val calendar = Calendar.getInstance().apply { time = date }
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val monthStart = calendar.time
-
-        calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-        calendar.set(Calendar.HOUR_OF_DAY, 23)
-        calendar.set(Calendar.MINUTE, 59)
-        calendar.set(Calendar.SECOND, 59)
-        val monthEnd = calendar.time
-
-        return Pair(monthStart, monthEnd)
-    }
-    
-    /**
      * Format currency amount to string with appropriate currency symbol
      */
     fun formatCurrency(amount: Double): String {
@@ -597,10 +386,7 @@ data class BudgetStatus(
 ) {
     // Computed property to check if over budget
     val isOverBudget: Boolean get() = spent > budgetAmount
-    
-    // Computed property for days remaining in the budget
-    val daysRemaining: Int get() = if (daysUntilDepleted == Int.MAX_VALUE) Int.MAX_VALUE else daysUntilDepleted
-    
+
     // Will the budget be exceeded by the end of the period?
     val willExceedBudget: Boolean get() = forecastedTotalSpending > budgetAmount
     
