@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 import java.util.regex.Pattern
 
 private const val TAG = "PDFUtils"
-private const val LOOK_AHEAD_LINES = 15  // Increased to capture all transaction details
 
 object PDFUtils {
     private val DATE_PATTERN = Pattern.compile(

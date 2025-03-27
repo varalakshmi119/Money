@@ -366,7 +366,7 @@ fun BudgetAlertBanner(
                     
                     // Action button
                     Button(
-                        onClick = { /* TODO: Navigate to insights screen */ },
+                        onClick = { /*  */ },
                         modifier = Modifier.align(Alignment.End),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error,
